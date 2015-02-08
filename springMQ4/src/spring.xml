@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans
+    xmlns="http://www.springframework.org/schema/beans"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.springframework.org/schema/beans
+    
+    http://www.springframework.org/schema/beans/spring-beans-2.0.xsd">
+    <!--创建连接工厂-->
+    <bean id="connectionFactory"
+        class="org.apache.activemq.ActiveMQConnectionFactory">
+        <property name="brokerURL" value="tcp://localhost:61616"></property>
+    </bean>
+    <!-- 声明ActiveMQ消息目标,目标可以是一个队列，也可以是一个主题ActiveMQTopic-->
+    <bean id="destination" class="org.apache.activemq.command.ActiveMQQueue">
+        <constructor-arg index="0" value="test2"></constructor-arg>
+    </bean>
+    <!---->
+    <bean id="jmsTemplate" class="org.springframework.jms.core.JmsTemplate">
+        <property name="connectionFactory" ref="connectionFactory"></property>
+        <property name="defaultDestination" ref="destination"></property>
+        <property name="receiveTimeout" value="600"></property>
+
+    </bean>
+    <bean id="sender" class="test2.Sender">
+        <property name="jmsTemplate" ref="jmsTemplate"></property>
+
+    </bean>
+    <bean id="receiver" class="test2.Receiver">
+        <property name="jmsTemplate" ref="jmsTemplate"></property>
+    </bean>
+</beans>

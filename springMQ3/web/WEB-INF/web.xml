@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<web-app version="2.4" 
+	xmlns="http://java.sun.com/xml/ns/j2ee" 
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
+	xsi:schemaLocation="http://java.sun.com/xml/ns/j2ee 
+	http://java.sun.com/xml/ns/j2ee/web-app_2_4.xsd">
+	
+	
+	 <!-- 加载spring配置文件applicationContext.xml -->
+    <listener>
+        <listener-class>
+            org.springframework.web.context.ContextLoaderListener
+        </listener-class>
+    </listener>    
+  	<!-- 指明spring配置文件在何处 -->
+    <context-param>
+        <param-name>contextConfigLocation</param-name>
+        <param-value>classpath*:applicationContext.xml</param-value>
+    </context-param>
+  
+  
+ 
+ 
+  <servlet>
+      <servlet-name>ControlServlet1</servlet-name>
+      <servlet-class>com.tech.gps.servlet.DelegatingServletProxy</servlet-class>
+  </servlet>
+
+  <servlet-mapping>
+      <servlet-name>ControlServlet1</servlet-name>
+      <url-pattern>/ControlServlet1</url-pattern>
+  </servlet-mapping>
+  <welcome-file-list>
+    <welcome-file>index11.jsp</welcome-file>
+  </welcome-file-list>
+</web-app>

@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="UTF-8"?>  
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
+	xmlns:aop="http://www.springframework.org/schema/aop"
+	xmlns:tx="http://www.springframework.org/schema/tx" 
+	xmlns:context="http://www.springframework.org/schema/context"
+	xmlns:flex="http://www.springframework.org/schema/flex"
+	xmlns:amq="http://activemq.apache.org/schema/core"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans
+           http://www.springframework.org/schema/beans/spring-beans-3.0.xsd
+           http://www.springframework.org/schema/context
+           http://www.springframework.org/schema/context/spring-context-3.0.xsd
+           http://www.springframework.org/schema/tx 
+           http://www.springframework.org/schema/tx/spring-tx-3.0.xsd
+		   http://www.springframework.org/schema/aop 
+		   http://www.springframework.org/schema/aop/spring-aop-3.0.xsd
+		   http://www.springframework.org/schema/flex
+		   http://www.springframework.org/schema/flex/spring-flex-1.0.xsd
+		   http://activemq.apache.org/schema/core 
+		   http://activemq.apache.org/schema/core/activemq-core-5.2.0.xsd
+		   " 
+    >  
+ 
+	
+   <!--%%%%%%%%%%%%%%%%%%*********************消息处理 ACTIVEMQ***************************%%%%%%%%%%%%% -->
+ 
+    <!-- JMS TOPIC MODEL -->  
+    <!-- TOPIC链接工厂 -->  
+    <bean id="topicSendConnectionFactory" class="org.apache.activemq.spring.ActiveMQConnectionFactory">  
+       <property name="brokerURL" value="udp://localhost:8123" />  <!-- UDP传输方式 -->
+<!--   <property name="brokerURL" value="tcp://localhost:61616" />  --><!-- TCP传输方式 -->
+       <property name="useAsyncSend" value="true" /> 
+    </bean>  
+      
+    <bean id="topicListenConnectionFactory" class="org.apache.activemq.spring.ActiveMQConnectionFactory">  
+        <property name="brokerURL" value="udp://localhost:8123" />  <!-- UDP传输方式 -->
+<!--   <property name="brokerURL" value="tcp://localhost:61616" />  --> <!-- TCP传输方式 -->
+    </bean>  
+      
+    <!-- 定义主题 -->  
+    <bean id="myTopic"  class="org.apache.activemq.command.ActiveMQTopic">  
+      <constructor-arg value="normandy.topic"/>  
+    </bean>  
+     <bean id="messageConvertForSys" class="com.tech.gps.util.MessageConvertForSys"></bean>    
+ 
+    <!-- TOPIC send jms模板 -->  
+    <bean id="jmsTemplate" class="org.springframework.jms.core.JmsTemplate">  
+        <property name="connectionFactory" ref="topicSendConnectionFactory"></property>  
+        <property name="defaultDestination" ref="myTopic" />  
+        <property name="messageConverter" ref="messageConvertForSys" />  
+        <!-- 发送模式  DeliveryMode.NON_PERSISTENT=1:非持久 ; DeliveryMode.PERSISTENT=2:持久-->  
+        <property name="deliveryMode" value="1" /> 
+        <property name="pubSubDomain" value="true"/>   <!-- 开启订阅模式 -->
+    </bean>  
+      
+    <!-- 消息发送方 -->  
+    <bean id="topicSender" class="com.tech.gps.util.MessageSender">  
+        <property name="jmsTemplate" ref="jmsTemplate"></property>  
+       
+    </bean>  
+      
+    <!-- 消息接收方 -->  
+    <bean id="topicReceiver" class="com.tech.gps.util.MessageReceiver">    </bean>  
+ 
+      
+    <!-- 主题消息监听容器 -->  
+    <bean id="listenerContainer"    
+        class="org.springframework.jms.listener.DefaultMessageListenerContainer">    
+        <property name="connectionFactory" ref="topicListenConnectionFactory" />    
+        <property name="pubSubDomain" value="true"/><!--true 订阅模式 -->  
+        <property name="destination" ref="myTopic" /><!-- 目的地 myTopic -->  
+        <property name="subscriptionDurable" value="true"/> 
+        <!---这里是设置接收客户端的ID，在持久化时，但这个客户端不在线时，消息就存在数据库里，知道被这个ID的客户端消费掉-->   
+        <property name="clientId" value="clientId_1"/>
+        <property name="messageListener" ref="topicReceiver" />    
+    </bean>  
+    
+    <!-- Servlet -->  
+    <bean id="ControlServlet1" class="com.tech.gps.servlet.ControlServlet1">
+       <property name="topicSender" ref="topicSender"></property>  
+    </bean> 
+    
+      
+    
+</beans>  

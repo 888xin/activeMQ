@@ -1,0 +1,108 @@
+<beans xmlns="http://www.springframework.org/schema/beans" xmlns:amq="http://activemq.org/config/1.0"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+ http://activemq.org/config/1.0 http://activemq.apache.org/schema/core/activemq-core-5.0.0.xsd">
+	<!--
+	    使用spring的listenerContainer，消息用持久化保存，服务器重启不会丢失
+	-->
+	<!--  embedded ActiveMQ Broker -->
+	<amq:broker useJmx="false" persistent="true">
+		<amq:persistenceAdapter>
+			<amq:amqPersistenceAdapter directory="d:/amq"/>
+		</amq:persistenceAdapter>
+		<amq:transportConnectors>
+			<amq:transportConnector uri="tcp://localhost:0" />
+		</amq:transportConnectors>
+	</amq:broker>
+	
+     <!-- 连接外部的activeMQ
+	<amq:connectionFactory id="jmsConnectionFactory" brokerURL="tcp://localhost:61616?wireFormat.maxInactivityDuration=0" />
+	  ActiveMQ connectionFactory  -->
+	<amq:connectionFactory id="jmsConnectionFactory" brokerURL="vm://localhost" />
+
+    <!--  ActiveMQ destinations  -->
+	<!--  使用topic方式-->
+	<amq:topic name="TOPIC" physicalName="JMS-TEST-TOPIC" />
+
+    <!--  使用Queue方式-->
+    <amq:queue name="QUEUE" physicalName="JMS-TEST-QUEUE" />
+
+	<!--  Spring JmsTemplate config -->
+	<bean id="jmsTemplate" class="org.springframework.jms.core.JmsTemplate">
+		<property name="connectionFactory">
+			<!--  lets wrap in a pool to avoid creating a connection per send -->
+			<bean class="org.springframework.jms.connection.SingleConnectionFactory">
+				<property name="targetConnectionFactory" ref="jmsConnectionFactory" />
+			</bean>
+		</property>
+		<!-- custom MessageConverter -->
+		<property name="messageConverter" ref="defaultMessageConverter" />
+	</bean>
+
+	<!-- converter  -->
+	<bean id="defaultMessageConverter" class="com.andyao.activemq.DefaultMessageConverter" />
+
+	<!-- POJO which send Message uses  Spring JmsTemplate -->
+	<bean id="topicMessageProducer" class="com.andyao.activemq.TopicMessageProducer">
+		<property name="template" ref="jmsTemplate" />
+		<property name="destination" ref="TOPIC" />
+	</bean>
+	<bean id="queueMessageProducer" class="com.andyao.activemq.QueueMessageProducer">
+		<property name="template" ref="jmsTemplate" />
+		<property name="destination" ref="QUEUE" />
+	</bean>
+
+	<!--  Message Driven POJO (MDP) -->
+    <!-- consumer1 for topic a -->
+    <bean id="topicConsumerA" class="com.andyao.activemq.TopicConsumerA" />
+
+    <!-- consumer2 for topic a -->
+    <bean id="topicConsumerB" class="com.andyao.activemq.TopicConsumerB" />
+
+    <!-- consumer for queue -->
+    <bean id="queueConsumer" class="com.andyao.activemq.QueueConsumer" />
+
+    <!-- Message Listener for  -->
+	<bean id="topicListenerA" class="org.springframework.jms.listener.adapter.MessageListenerAdapter">
+		<constructor-arg ref="topicConsumerA" />
+		<!--  may be other method -->
+		<property name="defaultListenerMethod" value="receive" />
+		<!-- custom MessageConverter define -->
+		<property name="messageConverter" ref="defaultMessageConverter" />
+	</bean>
+
+	<bean id="topicListenerB" class="org.springframework.jms.listener.adapter.MessageListenerAdapter">
+		<constructor-arg ref="topicConsumerB" />
+		<!--  may be other method -->
+		<property name="defaultListenerMethod" value="receive" />
+		<!-- custom MessageConverter define -->
+		<property name="messageConverter" ref="defaultMessageConverter" />
+	</bean>
+
+    <bean id="queueListener" class="org.springframework.jms.listener.adapter.MessageListenerAdapter">
+		<constructor-arg ref="queueConsumer" />
+		<!--  may be other method -->
+		<property name="defaultListenerMethod" value="receive" />
+		<!-- custom MessageConverter define -->
+		<property name="messageConverter" ref="defaultMessageConverter" />
+	</bean>
+
+    <!--  listener container，MDP无需实现接口 -->
+	<bean id="topicListenerContainerA" class="org.springframework.jms.listener.DefaultMessageListenerContainer">
+		<property name="connectionFactory" ref="jmsConnectionFactory" />
+		<property name="destination" ref="TOPIC" />
+		<property name="messageListener" ref="topicListenerA" />
+	</bean>
+
+    <bean id="topicListenerContainerB" class="org.springframework.jms.listener.DefaultMessageListenerContainer">
+		<property name="connectionFactory" ref="jmsConnectionFactory" />
+		<property name="destination" ref="TOPIC" />
+		<property name="messageListener" ref="topicListenerB" />
+	</bean>
+    
+    <bean id="queueListenerContainer" class="org.springframework.jms.listener.DefaultMessageListenerContainer">
+		<property name="connectionFactory" ref="jmsConnectionFactory" />
+		<property name="destination" ref="QUEUE" />
+		<property name="messageListener" ref="queueListener" />
+	</bean>
+</beans>
